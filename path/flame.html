@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Stiletto flame — extend.svg path viewer</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #1a1a1c;
+            --fg: #e6e6e6;
+            --muted: #9a9a9a;
+            --line: #3a3a3d;
+            --panel: #242427;
+            --field: #2c2c30;
+            --canvas: #1e1e20;
+            --accent: #e0457b;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font: 15px system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px 18px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        header h1 {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .readout {
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+        }
+
+        .readout b {
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .readout code {
+            background: var(--field);
+            border-radius: 3px;
+            padding: 1px 5px;
+        }
+
+        .stage {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            padding: 16px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            background: var(--canvas);
+            border: 1px solid var(--line);
+        }
+
+        .path {
+            fill: rgba(224, 69, 123, .05);
+            stroke: #5a5a5e;
+        }
+
+        .hi {
+            fill: none;
+            stroke: #ff7fb0;
+            stroke-linecap: round;
+        }
+
+        .guide {
+            stroke: #6a6a6e;
+            stroke-dasharray: 4 4;
+            fill: none;
+        }
+
+        .anchor {
+            fill: #cfcfcf;
+        }
+
+        .handle {
+            fill: var(--accent);
+        }
+
+        footer {
+            padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+            border-top: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: var(--accent);
+            height: 28px;
+        }
+
+        footer .pct {
+            font-variant-numeric: tabular-nums;
+            min-width: 7ch;
+            text-align: right;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Stiletto flame — extend.svg path viewer</h1>
+        <span class="readout" id="readout"></span>
+    </header>
+
+    <div class="stage">
+        <svg id="stage" viewBox="0 0 1749.84 1996.14" preserveAspectRatio="xMidYMid meet">
+            <path id="blade" class="path" />
+            <path id="hi" class="hi" />
+            <g id="marks"></g>
+        </svg>
+    </div>
+
+    <footer>
+        <input type="range" id="slider" min="1" max="1" value="1" step="1" aria-label="curve index">
+        <span class="pct" id="pct">1 / 1</span>
+    </footer>
+
+    <script>
+        // path data: components/flame-absolute.svg (= flame-relative.svg as M + C).
+        // 44 curves, single subpath,
+        // apex/tip at (879.29,2.36). Right leg shifted ~20px toward centre.
+        const D = `M879.29,2.36
+      C881.97,2.43,882.79,4.52,883.34,6.57 C886.03,16.57,888.63,26.61,891.68,36.51
+      C894.99,47.26,897.99,58.11,901.41,68.82 C902.72,76.85,906.35,84.04,909.53,91.4
+      C915,104.06,920.75,116.59,927.58,128.59 C931.94,136.28,935.17,144.59,940.43,151.78
+      C951.4,169.54,963.4,186.58,976.8,202.6 C991.3,219.93,1006.15,236.96,1020.65,254.3
+      C1038.36,275.48,1055.64,296.99,1072.19,319.13 C1091.18,344.54,1109.71,370.18,1124.95,398.06
+      C1136.53,419.05,1145.45,441.11,1151.67,464.27 C1158.79,492.1,1163.27,520.19,1162.3,549.11
+      C1161.48,573.7,1156.86,597.44,1149,620.64 C1135,659.18,1117.53,695.48,1101.44,722.53
+      C1088.08,745.48,1070.78,765,1058.11,781.43 C1043.38,800.27,1031.25,811.22,1005.22,832.46
+      C977.82,846.5,965.34,867.05,962.7,886.25 C961.44,899.43,958.05,909.73,947.4,917.46
+      C943.58,916.99,943.38,898.99,943.64,888.57 C944.31,867.88,948.17,850.51,953.96,831.22
+      C959.74,808.07,967.5,778.16,972.32,748.26 C976.18,719.32,981.11,687.49,979.18,658.55
+      C976.31,629.4,975.25,602.81,965.85,574.62 C955.9,547.82,948.6,519.95,932.87,493.23
+      C916.05,464.67,899.09,438.7,877.81,412.24 C858.01,438.7,837.53,464.67,820.71,493.23
+      C804.98,519.95,791.68,547.82,781.73,574.62 C772.33,602.81,766.27,629.4,763.4,658.55
+      C761.47,687.49,763.4,719.32,767.26,748.26 C772.08,778.16,778.84,808.07,784.62,831.22
+      C790.41,850.51,794.27,867.88,794.94,888.57 C795.2,898.99,795,916.99,791.18,917.46
+      C780.53,909.73,777.14,899.43,775.88,886.25 C774.04,867.06,766.06,849.81,747.96,839.4
+      C714.17,819.97,684.9,774.9,652.04,734.31 C608.55,656.99,569.89,602.86,589.04,504.91
+      C593.84,486.99,598.13,468.94,603.12,451.08 C610.8,423.56,622.75,397.88,637.08,373.19
+      C656.08,340.44,679.16,310.72,703.91,282.23 C726.34,256.41,749.24,230.96,769.75,203.55
+      C795.27,169.45,817.95,133.6,836.95,95.38 C849.62,69.89,860.31,43.61,870.72,17.17
+      C872.26,13.46,873.91,9.79,875.43,6.06 C876.14,4.31,876.85,2.31,879.3,2.37
+      Z`;
+
+        const NS = 'http://www.w3.org/2000/svg';
+        const $ = id => document.getElementById(id);
+        const svg = $('stage'), path = $('blade'), hi = $('hi'), marks = $('marks');
+        const slider = $('slider'), pct = $('pct'), readout = $('readout');
+
+        path.setAttribute('d', D);
+
+        // parse M/m, C/c, L/l, H/h, V/v, Z/z into absolute cubic segments
+        const tok = D.match(/[a-zA-Z]|-?\d*\.?\d+(?:e-?\d+)?/g) || [];
+        let i = 0, cmd = null, start = { x: 0, y: 0 }, cur = start;
+        const segs = [];  // { c1x,c1y,c2x,c2y,x,y,from } — all absolute
+        const take = n => tok.slice(i, i += n).map(parseFloat);
+        while (i < tok.length) {
+            if (/[a-zA-Z]/.test(tok[i])) {
+                cmd = tok[i++];
+                if (/[zZ]/.test(cmd)) { cur = start; cmd = null; }
+                continue;
+            }
+            const rel = cmd === cmd.toLowerCase();
+            const bx = rel ? cur.x : 0, by = rel ? cur.y : 0;
+            if (cmd === 'M' || cmd === 'm') {
+                const [x, y] = take(2);
+                start = cur = { x: x + bx, y: y + by };
+                cmd = rel ? 'l' : 'L';           // subsequent pairs are implicit lineto
+            } else if (cmd === 'C' || cmd === 'c') {
+                const [c1x, c1y, c2x, c2y, x, y] = take(6);
+                segs.push({
+                    c1x: c1x + bx, c1y: c1y + by,
+                    c2x: c2x + bx, c2y: c2y + by,
+                    x: x + bx, y: y + by, from: cur
+                });
+                cur = { x: x + bx, y: y + by };
+            } else if (cmd === 'L' || cmd === 'l') {
+                const [x, y] = take(2);
+                cur = { x: x + bx, y: y + by };
+            } else if (cmd === 'H' || cmd === 'h') {
+                const [x] = take(1);
+                cur = { x: x + bx, y: cur.y };
+            } else if (cmd === 'V' || cmd === 'v') {
+                const [y] = take(1);
+                cur = { x: cur.x, y: y + by };
+            } else { i++; }
+        }
+
+        const N = segs.length;
+        const pad2 = n => String(n).padStart(2, '0');
+        const vb = svg.viewBox.baseVal;
+        const U = Math.max(vb.width, vb.height) / 450;
+        path.setAttribute('stroke-width', U);
+        hi.setAttribute('stroke-width', U * 2.6);
+
+        slider.max = N;
+        slider.value = 1;
+
+        const mk = (tag, attrs) => {
+            const e = document.createElementNS(NS, tag);
+            for (const k in attrs) e.setAttribute(k, attrs[k]);
+            return e;
+        };
+        const n1 = v => (Math.round(v * 100) / 100);
+
+        function update() {
+            const k = Math.min(N, Math.max(1, +slider.value));
+            const s = segs[k - 1], p = s.from;
+
+            hi.setAttribute('d',
+                `M ${p.x},${p.y} C ${s.c1x},${s.c1y} ${s.c2x},${s.c2y} ${s.x},${s.y}`);
+
+            marks.replaceChildren(
+                mk('line', { class: 'guide', 'stroke-width': U * .6, x1: p.x, y1: p.y, x2: s.c1x, y2: s.c1y }),
+                mk('line', { class: 'guide', 'stroke-width': U * .6, x1: s.x, y1: s.y, x2: s.c2x, y2: s.c2y }),
+                mk('circle', { class: 'handle', r: U * 1.7, cx: s.c1x, cy: s.c1y }),
+                mk('circle', { class: 'handle', r: U * 1.7, cx: s.c2x, cy: s.c2y }),
+                mk('rect', { class: 'anchor', x: p.x - U * 2, y: p.y - U * 2, width: U * 4, height: U * 4 }),
+                mk('rect', { class: 'anchor', x: s.x - U * 2, y: s.y - U * 2, width: U * 4, height: U * 4 }),
+            );
+
+            pct.textContent = `${k} / ${N}`;
+            readout.innerHTML =
+                `curve <b>${k}</b> / ${N}` +
+                ` &nbsp;·&nbsp; <code>${pad2(k)}</code>` +
+                ` &nbsp;·&nbsp; <b>${n1(p.x)},${n1(p.y)}</b> → <b>${n1(s.x)},${n1(s.y)}</b>` +
+                ` &nbsp;·&nbsp; <code>C ${n1(s.c1x)},${n1(s.c1y)} ${n1(s.c2x)},${n1(s.c2y)} ${n1(s.x)},${n1(s.y)}</code>`;
+        }
+
+        slider.addEventListener('input', update);
+        addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();   // else a focused range input also steps: +1 native +1 here = skips odd
+                slider.value = +slider.value + (e.key === 'ArrowRight' ? 1 : -1);
+                update();
+            }
+        });
+        update();
+    </script>
+</body>
+
+</html>
